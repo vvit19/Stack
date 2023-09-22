@@ -2,7 +2,6 @@
 #include <cstdlib>
 
 #include "stack.h"
-#include "stack_errors.h"
 
 static int  find_stack_errors(stack* stk);
 static void tell_error(int error_value);
@@ -23,7 +22,7 @@ void stack_verify(stack* stk)
         {
             #ifdef _DEBUG
 
-            STACK_DUMP(stk);
+            stack_dump(stk);
             tell_error(error_value);
 
             #else
@@ -44,6 +43,13 @@ static int find_stack_errors(stack* stk)
     if (stk->capacity < 0)         errors |= NEGATIVE_CAPACITY;
     if (stk->data == nullptr)      errors |= DATARRAY_NULLPTR;
     if (stk->size > stk->capacity) errors |= SIZE_BIGGER_THAN_CAPACITY;
+    
+    #ifdef _CANARY_PROTECTION
+
+    if (*stk->left_canary  != CANARY_CONST) errors |=  LEFT_CANARY_ERROR;
+    if (*stk->right_canary != CANARY_CONST) errors |= RIGHT_CANARY_ERROR;
+
+    #endif
 
     return errors;
 }
@@ -126,6 +132,18 @@ static void tell_error(int error_value)
     case SIZE_BIGGER_THAN_CAPACITY:
         fprintf(log_file, "SIZE IS BIGGER THAN CAPACITY\n");
         abort();
+    
+    #ifdef _CANARY_PROTECTION
+
+    case LEFT_CANARY_ERROR:
+        fprintf(log_file, "LEFT CANARY ERROR. SOMEONE WAS TRYING TO CHANGE DATA VALUES (not with push or pop)");
+        abort();
+    case RIGHT_CANARY_ERROR:
+        fprintf(log_file, "RIGHT CANARY ERROR. SOMEONE WAS TRYING TO CHANGE DATA VALUES (not with push or pop)");
+        abort();
+
+    #endif
+
     default:
         fprintf(log_file, "Ooooh...we don't know what error was happened\n");
         break;

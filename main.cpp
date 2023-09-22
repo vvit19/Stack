@@ -8,16 +8,15 @@ int main()
 
     STACK_CTOR(&stk);
 
-    stack_push(&stk, 3);
-    stack_push(&stk, -1);
-    stack_push(&stk, 69);
-    stack_pop (&stk);
-    stack_push(&stk, 12);
-    stack_push(&stk, 6);
-    stack_push(&stk, -69);
-    stack_push(&stk, 12);
-    stack_push(&stk, 9);
-    for (int i = 0; i < 100; i++) stack_pop(&stk);   
+    for (int i = 1; i <= 40; i++)
+    {
+        stack_push(&stk, i);
+    }
+
+    for (int i = 0; i < 50; i++)
+    {
+        stack_pop(&stk);
+    }
 
     stack_dtor(&stk);
 }

@@ -4,9 +4,8 @@
 #include <cstring>
 
 #include "stack.h"
-#include "stack_errors.h"
 
-static elem_t* stack_recalloc(elem_t** array, int new_size, int old_size);
+static elem_t* stack_recalloc(stack* stk, int new_size, int old_size);
 
 #ifdef _DEBUG
 
@@ -15,7 +14,24 @@ void stack_ctor(stack* stk, const char* variable_name, const char* function_name
 {
     assert(stk);
 
+    #ifdef _CANARY_PROTECTION
+
+    char* temp = (char*) calloc(1, MIN_CAPACITY * sizeof(elem_t) + 2 * sizeof(canary_t));
+
+    stk->left_canary  = (canary_t*) temp;
+    stk->right_canary = (canary_t*) ((size_t) temp + MIN_CAPACITY * sizeof(elem_t) + sizeof(canary_t));
+
+    stk->data = (elem_t*) ((size_t) temp + sizeof(canary_t));
+
+    *(stk->left_canary) = CANARY_CONST;
+    *(stk->right_canary) = CANARY_CONST;
+
+    #else    
+
     stk->data = (elem_t*) calloc(MIN_CAPACITY, sizeof(elem_t));
+
+    #endif
+
     stk->size = 0;
     stk->capacity = MIN_CAPACITY;
 
@@ -49,7 +65,8 @@ void stack_push(stack* stk, elem_t value)
     if (stk->size >= stk->capacity)
     {
         stk->capacity += MIN_CAPACITY;
-        stk->data = stack_recalloc(&stk->data, stk->capacity, stk->capacity - MIN_CAPACITY);
+
+        stk->data = stack_recalloc(stk, stk->capacity, stk->capacity - MIN_CAPACITY);
     }
 
     stk->data[stk->size++] = value;
@@ -64,7 +81,7 @@ void stack_pop(stack* stk)
     if (stk->size <= stk->capacity / 4 && stk->capacity >= MIN_CAPACITY)
     {
         stk->capacity /= 2;
-        stk->data = (elem_t*) realloc(stk->data, stk->capacity * sizeof(elem_t));
+        stk->data = (elem_t*) stack_recalloc(stk, stk->capacity, stk->capacity * 2);
     }    
   
     stk->size--;
@@ -82,16 +99,50 @@ void stack_dtor(stack* stk)
 
     stk->capacity = 0;
     stk->size = 0;
+
+    #ifdef _CANARY_PROTECTION
+
+    stk->left_canary = nullptr;
+    free(stk->left_canary);
+ 
+    stk->right_canary = nullptr;
+    free(stk->right_canary);
+
+    #endif
 }
 
-static elem_t* stack_recalloc(elem_t** array, int new_size, int old_size)
+static elem_t* stack_recalloc(stack* stk, int new_size, int old_size)
 {
-    *array = (elem_t*) realloc(*array, new_size * sizeof(elem_t));
+    #ifdef _CANARY_PROTECTION
 
-    for (int i = old_size; i < new_size; i++)
+    *(stk->left_canary) = *(stk->right_canary) = GARBAGE;
+
+    char* temp = (char*)  ((size_t) stk->data - sizeof(canary_t));
+
+    temp = (char*) realloc(temp, new_size * sizeof(elem_t) + 2 * sizeof(canary_t));
+
+    stk->data = (elem_t*) (temp + sizeof(canary_t));
+
+    stk->left_canary  = (canary_t*) temp;
+    stk->right_canary = (canary_t*) ((size_t) temp + stk->capacity * sizeof(elem_t) + sizeof(canary_t));
+
+    stk->data = (elem_t*) ((size_t) temp + sizeof(canary_t));
+
+    *(stk->left_canary) = *(stk->right_canary) = CANARY_CONST;  
+
+    #else
+
+    stk->data = (elem_t*) realloc(stk->data, new_size * sizeof(elem_t));
+
+    #endif
+
+    if (new_size > old_size)
     {
-        (*array)[i] = GARBAGE;
+        for (int i = old_size; i < new_size; i++)
+        {
+            (stk->data)[i] = GARBAGE;
+        }
     }
 
-    return *array;
+    return stk->data;
 }

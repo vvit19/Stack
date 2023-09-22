@@ -1,7 +1,7 @@
-stack[64FEE0] &stk called from main.cpp(9) int main()()
+stack[64FED4] &stk called from main.cpp(9) int main()()
 size = -1
 capacity = 2
-data[CA2E60]
+data[E92E68]
 
 *[0] = NAN (POISON)
 *[1] = NAN (POISON)
