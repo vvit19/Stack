@@ -4,8 +4,8 @@
 #include "stack.h"
 #include "stack_errors.h"
 
-static int find_stack_errors(stack* stk);
-static void fprint_error(int error_value);
+static int  find_stack_errors(stack* stk);
+static void tell_error(int error_value);
 
 void stack_verify(stack* stk)
 {
@@ -14,9 +14,24 @@ void stack_verify(stack* stk)
 
     for (int num = 0; num < ERRORS_NUM; num++)
     {
-        if (num > 0) error_value *= 2;
+        if (num > 0) 
+        {
+            error_value *= 2;
+        }
 
-        if (errors & error_value) fprint_error(error_value);
+        if (errors & error_value) 
+        {
+            #ifdef _DEBUG
+
+            STACK_DUMP(stk);
+            tell_error(error_value);
+
+            #else
+
+            abort();
+
+            #endif
+        }
     }
 }
 
@@ -24,61 +39,51 @@ static int find_stack_errors(stack* stk)
 {
     int errors = 0;
 
-    if (stk == nullptr)       errors |= STACK_NULLPTR;
-    if (stk->size < 0)        errors |= NEGATIVE_SIZE;
-    if (stk->capacity < 0)    errors |= NEGATIVE_CAPACITY;
-    if (stk->data == nullptr) errors |= DATARRAY_NULLPTR;
+    if (stk == nullptr)            errors |= STACK_NULLPTR;
+    if (stk->size < 0)             errors |= NEGATIVE_SIZE;
+    if (stk->capacity < 0)         errors |= NEGATIVE_CAPACITY;
+    if (stk->data == nullptr)      errors |= DATARRAY_NULLPTR;
+    if (stk->size > stk->capacity) errors |= SIZE_BIGGER_THAN_CAPACITY;
 
     return errors;
 }
 
-static void fprint_error(int error_value)
-{ 
-    FILE* log_file = fopen(LOG_FILE, "a");
-    if (log_file == nullptr)
-    {
-        fprintf(log_file, "LOG_FILE NOT FOUND\n");
-        exit(1);
-    }
+#ifdef _DEBUG
 
-    switch (error_value)
-    {
-    case STACK_NULLPTR:
-        fprintf(log_file, "STACK_NULLPTR ERROR\n");
-        exit(1);
-        //break;
-    case NEGATIVE_SIZE:
-        fprintf(log_file, "NEGATIVE_SIZE ERROR\n");
-        exit(1);
-        //break;
-    case NEGATIVE_CAPACITY:
-        fprintf(log_file, "NEGATIVE_CAPACITY ERROR\n");
-        exit(1);
-        //break;
-    case DATARRAY_NULLPTR:
-        fprintf(log_file, "DATA ARRAY NULLPTR\n");
-        exit(1);
-        //break;
-    default:
-        fprintf(log_file, "Ooooh...we don't know what error was happened\n");
-        break;
-    }
+#define DUMP_STRUCTURE \
+    "stack[%X] %s called from %s(%d) %s()\n" \
+    "size = %d\n" \
+    "capacity = %d\n" \
+    "data[%X]\n\n" \
+    
+#define LOG_FILE "log.txt"
 
-    fclose(log_file);
-}
-
-void stack_dump(stack* stk, const char* variable_name, const char* function_name, 
-                const char* program_name, int line)
+void stack_dump(stack* stk)
 {
-    FILE* log_file = fopen(LOG_FILE, "a");
+    static bool file_was_cleaned = false;
+
+    FILE* log_file = nullptr;
+
+    if (file_was_cleaned)
+    {
+        log_file = fopen(LOG_FILE, "a");
+    } 
+    else 
+    {
+        log_file = fopen(LOG_FILE, "w");
+        file_was_cleaned = true;
+    }
+
     if (log_file == nullptr)
     {
         fprintf(log_file, "LOG_FILE NOT FOUND\n");
-        exit(1);
+        abort();
     }
 
-    fprintf(log_file, DUMP_STRUCTURE, &stk, variable_name, program_name, line, function_name,
-            stk->size, stk->capacity, stk->data);
+    fprintf(log_file, DUMP_STRUCTURE, (int) stk, 
+            stk->func_call_info.variable_name, stk->func_call_info.filename, 
+            stk->func_call_info.line, stk->func_call_info.function_name,
+            stk->size, stk->capacity, (int) stk->data);
 
     for (int i = 0; i < stk->capacity; i++)
     {
@@ -94,3 +99,39 @@ void stack_dump(stack* stk, const char* variable_name, const char* function_name
     fprintf(log_file, "--------------------------------------------------------------------------------------\n\n");
     fclose(log_file);
 }
+
+static void tell_error(int error_value)
+{ 
+    FILE* log_file = fopen(LOG_FILE, "a");
+    if (log_file == nullptr)
+    {
+        fprintf(log_file, "LOG_FILE NOT FOUND\n");
+        abort();
+    }
+
+    switch (error_value)
+    {
+    case STACK_NULLPTR:
+        fprintf(log_file, "STACK_NULLPTR ERROR\n");
+        abort();
+    case NEGATIVE_SIZE:
+        fprintf(log_file, "NEGATIVE_SIZE ERROR\n");
+        abort();
+    case NEGATIVE_CAPACITY:
+        fprintf(log_file, "NEGATIVE_CAPACITY ERROR\n");
+        abort();
+    case DATARRAY_NULLPTR:
+        fprintf(log_file, "DATA ARRAY NULLPTR\n");
+        abort();
+    case SIZE_BIGGER_THAN_CAPACITY:
+        fprintf(log_file, "SIZE IS BIGGER THAN CAPACITY\n");
+        abort();
+    default:
+        fprintf(log_file, "Ooooh...we don't know what error was happened\n");
+        break;
+    }
+
+    fclose(log_file);
+}
+
+#endif
