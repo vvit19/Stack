@@ -13,8 +13,6 @@ void stack_verify(stack* stk)
     long long int errors = find_stack_errors(stk);
     long long int error_value = 1;
 
-    stack_dump(stk);
-
     for (int num = 0; num < ERRORS_NUM; num++)
     {
         if (num > 0)
@@ -140,6 +138,7 @@ static void tell_error(long long int error_value)
         exit(1);
     case TOO_BIG_MEMORYSIZE_FOR_CALLOC:
         fprintf(log_file, "TOO BIG MEMORY SIZE FOR CALLOC (SO CAN'T ALLOCATE)\n\n");
+        exit(1);
 
     #ifdef _CANARY_PROTECTION
 
