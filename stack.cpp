@@ -1,16 +1,13 @@
 #include <cassert>
 #include <cstdlib>
-#include <cstdio>
 #include <cstring>
+#include <cstdint>
 
 #include "stack.h"
 
 static elem_t* stack_recalloc(stack* stk, int new_size, int old_size);
 
-#ifdef _DEBUG
-
-void stack_ctor(stack* stk, const char* variable_name, const char* function_name,
-                const char* filename, int line)
+void stack_ctor(stack* stk, ON_DEBUG(function_info info))
 {
     assert(stk);
 
@@ -18,45 +15,34 @@ void stack_ctor(stack* stk, const char* variable_name, const char* function_name
 
     char* temp = (char*) calloc(1, MIN_CAPACITY * sizeof(elem_t) + 2 * sizeof(canary_t));
 
-    stk->left_canary  = (canary_t*) temp;
-    stk->right_canary = (canary_t*) ((size_t) temp + MIN_CAPACITY * sizeof(elem_t) + sizeof(canary_t));
+    stk->left_canary_data  = (canary_t*) temp;
+    stk->right_canary_data = (canary_t*) ((size_t) temp + MIN_CAPACITY * sizeof(elem_t) + sizeof(canary_t));
 
     stk->data = (elem_t*) ((size_t) temp + sizeof(canary_t));
 
-    *(stk->left_canary) = CANARY_CONST;
-    *(stk->right_canary) = CANARY_CONST;
+    memcpy(stk->left_canary_data,  &CANARY_CONST, sizeof(canary_t));
+    memcpy(stk->right_canary_data, &CANARY_CONST, sizeof(canary_t));
 
-    #else    
+    stk->left_canary_struct  = CANARY_CONST;
+    stk->right_canary_struct = CANARY_CONST;
 
-    stk->data = (elem_t*) calloc(MIN_CAPACITY, sizeof(elem_t));
-
+    #else
+        stk->data = (elem_t*) calloc(MIN_CAPACITY, sizeof(elem_t));
     #endif
 
     stk->size = 0;
     stk->capacity = MIN_CAPACITY;
 
-    stk->func_call_info.filename = filename;
-    stk->func_call_info.function_name = function_name;
-    stk->func_call_info.variable_name = variable_name;
-    stk->func_call_info.line = line;
+    #ifdef _DEBUG
+        stk->func_info = info;
+    #endif
+
+    #ifdef _HASH_PROTECTION
+        HASH_PROTECTION_FUNCTION_CALL()
+    #endif
 
     stack_verify(stk);
 }
-
-#else
-
-void stack_ctor(stack* stk)
-{
-    assert(stk);
-
-    stk->data = (elem_t*) calloc(MIN_CAPACITY, sizeof(elem_t));
-    stk->size = 0;
-    stk->capacity = MIN_CAPACITY;
-
-    stack_verify(stk);
-}
-
-#endif
 
 void stack_push(stack* stk, elem_t value)
 {
@@ -64,12 +50,15 @@ void stack_push(stack* stk, elem_t value)
 
     if (stk->size >= stk->capacity)
     {
-        stk->capacity += MIN_CAPACITY;
-
-        stk->data = stack_recalloc(stk, stk->capacity, stk->capacity - MIN_CAPACITY);
+        stk->capacity *= 2;
+        stk->data = stack_recalloc(stk, stk->capacity, stk->capacity / 2);
     }
 
     stk->data[stk->size++] = value;
+
+    #ifdef _HASH_PROTECTION
+        HASH_PROTECTION_FUNCTION_CALL()
+    #endif
 
     stack_verify(stk);
 }
@@ -81,11 +70,15 @@ void stack_pop(stack* stk)
     if (stk->size <= stk->capacity / 4 && stk->capacity >= MIN_CAPACITY)
     {
         stk->capacity /= 2;
-        stk->data = (elem_t*) stack_recalloc(stk, stk->capacity, stk->capacity * 2);
-    }    
-  
+        stk->data = stack_recalloc(stk, stk->capacity, stk->capacity * 2);
+    }
+
     stk->size--;
     stk->data[stk->size] = GARBAGE;
+
+    #ifdef _HASH_PROTECTION
+        HASH_PROTECTION_FUNCTION_CALL()
+    #endif
 
     stack_verify(stk);
 }
@@ -94,20 +87,22 @@ void stack_dtor(stack* stk)
 {
     stack_verify(stk);
 
-    stk->data = nullptr;
-    free(stk->data);
-
     stk->capacity = 0;
     stk->size = 0;
 
+    #ifdef _HASH_PROTECTION
+        HASH_PROTECTION_FUNCTION_CALL()
+    #endif
+
     #ifdef _CANARY_PROTECTION
+        free(stk->left_canary_data);
 
-    stk->left_canary = nullptr;
-    free(stk->left_canary);
- 
-    stk->right_canary = nullptr;
-    free(stk->right_canary);
-
+        stk->func_info.filename = nullptr;
+        stk->func_info.function_name = nullptr;
+        stk->func_info.line = 0;
+        stk->func_info.variable_name = nullptr;
+    #else
+        free(stk->data);
     #endif
 }
 
@@ -115,20 +110,22 @@ static elem_t* stack_recalloc(stack* stk, int new_size, int old_size)
 {
     #ifdef _CANARY_PROTECTION
 
-    *(stk->left_canary) = *(stk->right_canary) = GARBAGE;
+    memcpy(stk->left_canary_data,  &GARBAGE, sizeof(GARBAGE));
+    memcpy(stk->right_canary_data, &GARBAGE, sizeof(GARBAGE));
 
-    char* temp = (char*)  ((size_t) stk->data - sizeof(canary_t));
+    char* temp = (char*) ((size_t) stk->data - sizeof(canary_t));
 
     temp = (char*) realloc(temp, new_size * sizeof(elem_t) + 2 * sizeof(canary_t));
 
     stk->data = (elem_t*) (temp + sizeof(canary_t));
 
-    stk->left_canary  = (canary_t*) temp;
-    stk->right_canary = (canary_t*) ((size_t) temp + stk->capacity * sizeof(elem_t) + sizeof(canary_t));
+    stk->left_canary_data  = (canary_t*) temp;
+    stk->right_canary_data = (canary_t*) ((size_t) temp + stk->capacity * sizeof(elem_t) + sizeof(canary_t));
 
     stk->data = (elem_t*) ((size_t) temp + sizeof(canary_t));
 
-    *(stk->left_canary) = *(stk->right_canary) = CANARY_CONST;  
+    memcpy(stk->left_canary_data,  &CANARY_CONST, sizeof(canary_t));
+    memcpy(stk->right_canary_data, &CANARY_CONST, sizeof(canary_t));
 
     #else
 
@@ -146,3 +143,62 @@ static elem_t* stack_recalloc(stack* stk, int new_size, int old_size)
 
     return stk->data;
 }
+
+#ifdef _HASH_PROTECTION
+
+long unsigned int poltorashka_hash(const char* key, long unsigned int len)
+{
+    const long unsigned int m = 0x5bd1e995;
+    const long unsigned int seed = 0;
+    const int r = 24;
+
+    long unsigned int h = seed ^ len;
+
+    const unsigned char* data = (const unsigned char*) key;
+    long unsigned int k = 0;
+
+    while (len >= 4)
+    {
+        k  = data[0];
+        k |= data[1] << 8;
+        k |= data[2] << 16;
+        k |= data[3] << 24;
+
+        k *= m;
+        k ^= k >> r;
+        k *= m;
+
+        h *= m;
+        h ^= k;
+
+        data += 4;
+        len -= 4;
+    }
+
+    if (len == 3)
+    {
+        h ^= data[2] << 16;
+        h ^= data[1] << 8;
+        h ^= data[0];
+        h *= m;
+    }
+    else if (len == 2)
+    {
+        h ^= data[1] << 8;
+        h ^= data[0];
+        h *= m;
+    }
+    else if (len == 1)
+    {
+        h ^= data[0];
+        h *= m;
+    }
+
+    h ^= h >> 13;
+    h *= m;
+    h ^= h >> 15;
+
+    return h;
+}
+
+#endif

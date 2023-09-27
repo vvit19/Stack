@@ -1,24 +1,28 @@
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
+#include <cassert>
 
 #include "stack.h"
 
-static int  find_stack_errors(stack* stk);
-static void tell_error(int error_value);
+static long long int find_stack_errors(stack* stk);
+static void tell_error(long long int error_value);
 
 void stack_verify(stack* stk)
 {
-    int errors = find_stack_errors(stk);
-    int error_value = 1;
+    long long int errors = find_stack_errors(stk);
+    long long int error_value = 1;
+
+    stack_dump(stk);
 
     for (int num = 0; num < ERRORS_NUM; num++)
     {
-        if (num > 0) 
+        if (num > 0)
         {
             error_value *= 2;
         }
 
-        if (errors & error_value) 
+        if (errors & error_value)
         {
             #ifdef _DEBUG
 
@@ -27,27 +31,40 @@ void stack_verify(stack* stk)
 
             #else
 
-            abort();
+            exit(1);
 
             #endif
         }
     }
 }
 
-static int find_stack_errors(stack* stk)
+static long long int find_stack_errors(stack* stk)
 {
-    int errors = 0;
+    long long int errors = 0;
 
     if (stk == nullptr)            errors |= STACK_NULLPTR;
     if (stk->size < 0)             errors |= NEGATIVE_SIZE;
     if (stk->capacity < 0)         errors |= NEGATIVE_CAPACITY;
     if (stk->data == nullptr)      errors |= DATARRAY_NULLPTR;
     if (stk->size > stk->capacity) errors |= SIZE_BIGGER_THAN_CAPACITY;
-    
+    if (stk->capacity * sizeof(elem_t) >= SIZE_MAX) errors |= TOO_BIG_MEMORYSIZE_FOR_CALLOC;
+
     #ifdef _CANARY_PROTECTION
 
-    if (*stk->left_canary  != CANARY_CONST) errors |=  LEFT_CANARY_ERROR;
-    if (*stk->right_canary != CANARY_CONST) errors |= RIGHT_CANARY_ERROR;
+    if (memcmp(stk->left_canary_data,  &CANARY_CONST, sizeof(canary_t)) != 0) errors |=  LEFT_CANARY_DATA_ERROR;
+    if (memcmp(stk->right_canary_data, &CANARY_CONST, sizeof(canary_t)) != 0) errors |= RIGHT_CANARY_DATA_ERROR;
+
+    #endif
+
+    #ifdef _HASH_PROTECTION
+
+    long unsigned int hash_struct_ref = stk->hash_struct;
+    long unsigned int hash_data_ref   = stk->hash_data;
+
+    HASH_PROTECTION_FUNCTION_CALL()
+
+    if (stk->hash_struct != hash_struct_ref) errors |= HASH_DETECTED_INVALID_CHANGES_STRUCT;
+    if (stk->hash_data   != hash_data_ref  ) errors |= HASH_DETECTED_INVALID_CHANGES_DATA;
 
     #endif
 
@@ -57,39 +74,28 @@ static int find_stack_errors(stack* stk)
 #ifdef _DEBUG
 
 #define DUMP_STRUCTURE \
-    "stack[%X] %s called from %s(%d) %s()\n" \
+    "stack[0x%p] %s called from %s(%d) %s\n" \
     "size = %d\n" \
     "capacity = %d\n" \
-    "data[%X]\n\n" \
-    
+    "<font color=red>data[0x%p]</font>\n\n" \
+
 #define LOG_FILE "log.txt"
 
 void stack_dump(stack* stk)
 {
-    static bool file_was_cleaned = false;
-
     FILE* log_file = nullptr;
-
-    if (file_was_cleaned)
-    {
-        log_file = fopen(LOG_FILE, "a");
-    } 
-    else 
-    {
-        log_file = fopen(LOG_FILE, "w");
-        file_was_cleaned = true;
-    }
+    log_file = fopen(LOG_FILE, "a");
 
     if (log_file == nullptr)
     {
         fprintf(log_file, "LOG_FILE NOT FOUND\n");
-        abort();
+        exit(1);
     }
 
-    fprintf(log_file, DUMP_STRUCTURE, (int) stk, 
-            stk->func_call_info.variable_name, stk->func_call_info.filename, 
-            stk->func_call_info.line, stk->func_call_info.function_name,
-            stk->size, stk->capacity, (int) stk->data);
+    fprintf(log_file, DUMP_STRUCTURE, stk,
+            stk->func_info.variable_name, stk->func_info.filename,
+            stk->func_info.line, stk->func_info.function_name,
+            stk->size, stk->capacity, stk->data);
 
     for (int i = 0; i < stk->capacity; i++)
     {
@@ -98,7 +104,7 @@ void stack_dump(stack* stk)
             fprintf(log_file, "*[%d] = NAN (POISON)\n", i);
             continue;
         }
-        
+
         fprintf(log_file, "*[%d] = %d\n", i, stk->data[i]);
     }
 
@@ -106,50 +112,66 @@ void stack_dump(stack* stk)
     fclose(log_file);
 }
 
-static void tell_error(int error_value)
-{ 
+static void tell_error(long long int error_value)
+{
     FILE* log_file = fopen(LOG_FILE, "a");
     if (log_file == nullptr)
     {
-        fprintf(log_file, "LOG_FILE NOT FOUND\n");
-        abort();
+        fprintf(log_file, "LOG_FILE NOT FOUND\n\n");
+        exit(1);
     }
 
     switch (error_value)
     {
     case STACK_NULLPTR:
-        fprintf(log_file, "STACK_NULLPTR ERROR\n");
-        abort();
+        fprintf(log_file, "STACK_NULLPTR ERROR\n\n");
+        exit(1);
     case NEGATIVE_SIZE:
-        fprintf(log_file, "NEGATIVE_SIZE ERROR\n");
-        abort();
+        fprintf(log_file, "NEGATIVE_SIZE ERROR\n\n");
+        exit(1);
     case NEGATIVE_CAPACITY:
-        fprintf(log_file, "NEGATIVE_CAPACITY ERROR\n");
-        abort();
+        fprintf(log_file, "NEGATIVE_CAPACITY ERROR\n\n");
+        exit(1);
     case DATARRAY_NULLPTR:
-        fprintf(log_file, "DATA ARRAY NULLPTR\n");
-        abort();
+        fprintf(log_file, "DATA ARRAY NULLPTR\n\n");
+        exit(1);
     case SIZE_BIGGER_THAN_CAPACITY:
-        fprintf(log_file, "SIZE IS BIGGER THAN CAPACITY\n");
-        abort();
-    
+        fprintf(log_file, "SIZE IS BIGGER THAN CAPACITY\n\n");
+        exit(1);
+    case TOO_BIG_MEMORYSIZE_FOR_CALLOC:
+        fprintf(log_file, "TOO BIG MEMORY SIZE FOR CALLOC (SO CAN'T ALLOCATE)\n\n");
+
     #ifdef _CANARY_PROTECTION
 
-    case LEFT_CANARY_ERROR:
-        fprintf(log_file, "LEFT CANARY ERROR. SOMEONE WAS TRYING TO CHANGE DATA VALUES (not with push or pop)");
-        abort();
-    case RIGHT_CANARY_ERROR:
-        fprintf(log_file, "RIGHT CANARY ERROR. SOMEONE WAS TRYING TO CHANGE DATA VALUES (not with push or pop)");
-        abort();
+    case LEFT_CANARY_DATA_ERROR:
+        fprintf(log_file, "LEFT CANARY ERROR. SOMEONE WAS TRYING TO CHANGE DATA VALUES (not with push or pop)\n\n");
+        //exit(1);
+        break;
+    case RIGHT_CANARY_DATA_ERROR:
+        fprintf(log_file, "RIGHT CANARY ERROR. SOMEONE WAS TRYING TO CHANGE DATA VALUES (not with push or pop)\n\n");
+        //exit(1);
+        break;
+    #endif
 
+    #ifdef _HASH_PROTECTION
+
+    case HASH_DETECTED_INVALID_CHANGES_STRUCT:
+        fprintf(log_file, "HASH DETECTED INVALID CHANGES. SOMEONE WAS TRYING TO CHANGE STRUCT VALUES\n\n");
+        //exit(1);
+        break;
+    case HASH_DETECTED_INVALID_CHANGES_DATA:
+        fprintf(log_file, "HASH DETECTED INVALID CHANGES. SOMEONE WAS TRYING TO CHANGE DATA VALUES\n\n");
+        //exit(1);
+        break;
     #endif
 
     default:
-        fprintf(log_file, "Ooooh...we don't know what error was happened\n");
+        fprintf(log_file, "Ooooh...we don't know what error was happened\n\n");
         break;
     }
 
+    fprintf(log_file, "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\n");
+
     fclose(log_file);
 }
-
 #endif

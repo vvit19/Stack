@@ -4,16 +4,16 @@
 
 int main()
 {
-    stack stk = {};
+    stack stk;
 
     STACK_CTOR(&stk);
 
-    for (int i = 1; i <= 40; i++)
+    for (int i = 1; i <= 10; i++)
     {
         stack_push(&stk, i);
     }
 
-    for (int i = 0; i < 50; i++)
+    for (int i = 0; i < 5; i++)
     {
         stack_pop(&stk);
     }
