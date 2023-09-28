@@ -116,6 +116,7 @@ static elem_t* stack_recalloc(stack* stk, long long new_size, long long old_size
     char* temp = (char*) ((size_t) stk->data - sizeof(canary_t));
 
     temp = (char*) realloc(temp, new_size * sizeof(elem_t) + 2 * sizeof(canary_t));
+    assert(temp);
 
     stk->data = (elem_t*) (temp + sizeof(canary_t));
 
