@@ -24,8 +24,8 @@ void stack_verify(stack* stk)
         {
             #ifdef _DEBUG
 
-            stack_dump(stk);
             tell_error(error_value);
+            stack_dump(stk);
 
             #else
 
@@ -40,12 +40,43 @@ static long long int find_stack_errors(stack* stk)
 {
     long long int errors = 0;
 
-    if (stk == nullptr)            errors |= STACK_NULLPTR;
-    if (stk->size < 0)             errors |= NEGATIVE_SIZE;
-    if (stk->capacity < 0)         errors |= NEGATIVE_CAPACITY;
-    if (stk->data == nullptr)      errors |= DATARRAY_NULLPTR;
-    if (stk->size > stk->capacity) errors |= SIZE_BIGGER_THAN_CAPACITY;
-    if (stk->capacity * sizeof(elem_t) >= SIZE_MAX) errors |= TOO_BIG_MEMORYSIZE_FOR_CALLOC;
+    if (stk == nullptr)
+    {
+        errors |= STACK_NULLPTR;
+        tell_error(STACK_NULLPTR);
+
+        return errors;
+    }
+    if (stk->size == DTOR_GARBAGE)
+    {
+        errors |= TWICE_DTORED;
+        tell_error(TWICE_DTORED);
+
+        return errors;
+    }
+    if (stk->data == nullptr)
+    {
+        errors |= DATARRAY_NULLPTR;
+        tell_error(DATARRAY_NULLPTR);
+
+        return errors;
+    }
+    if (stk->size < 0)
+    {
+        errors |= NEGATIVE_SIZE;
+    }
+    if (stk->capacity < 0)
+    {
+        errors |= NEGATIVE_CAPACITY;
+    }
+    if (stk->size > stk->capacity)
+    {
+        errors |= SIZE_BIGGER_THAN_CAPACITY;
+    }
+    if (stk->capacity * sizeof(elem_t) >= SIZE_MAX)
+    {
+        errors |= TOO_BIG_MEMORYSIZE_FOR_CALLOC;
+    }
 
     #ifdef _CANARY_PROTECTION
 
@@ -59,10 +90,23 @@ static long long int find_stack_errors(stack* stk)
     long unsigned int hash_struct_ref = stk->hash_struct;
     long unsigned int hash_data_ref   = stk->hash_data;
 
-    HASH_PROTECTION_FUNCTION_CALL()
+    stk->hash_struct = stk->hash_data = 0;
+    stk->hash_struct = poltorashka_hash((const char*) stk, sizeof(stack));
 
-    if (stk->hash_struct != hash_struct_ref) errors |= HASH_DETECTED_INVALID_CHANGES_STRUCT;
-    if (stk->hash_data   != hash_data_ref  ) errors |= HASH_DETECTED_INVALID_CHANGES_DATA;
+    if (stk->hash_struct != hash_struct_ref)
+    {
+        errors |= HASH_DETECTED_INVALID_CHANGES_STRUCT;
+        tell_error(HASH_DETECTED_INVALID_CHANGES_STRUCT);
+
+        return errors;
+    }
+
+    stk->hash_data = poltorashka_hash((const char*) stk->data, sizeof(elem_t) * stk->capacity);
+
+    if (stk->hash_data != hash_data_ref)
+    {
+        errors |= HASH_DETECTED_INVALID_CHANGES_DATA;
+    }
 
     #endif
 
@@ -73,9 +117,9 @@ static long long int find_stack_errors(stack* stk)
 
 #define DUMP_STRUCTURE \
     "stack[0x%p] %s called from %s(%d) %s\n" \
-    "size = %d\n" \
-    "capacity = %d\n" \
-    "<font color=red>data[0x%p]</font>\n\n" \
+    "size = %lld\n" \
+    "capacity = %lld\n" \
+    "data[0x%p]\n\n" \
 
 #define LOG_FILE "log.txt"
 
@@ -139,9 +183,18 @@ static void tell_error(long long int error_value)
     case TOO_BIG_MEMORYSIZE_FOR_CALLOC:
         fprintf(log_file, "TOO BIG MEMORY SIZE FOR CALLOC (SO CAN'T ALLOCATE)\n\n");
         exit(1);
+    case TWICE_DTORED:
+        fprintf(log_file, "STACK DTORED TWICE\n\n");
+        exit(1);
 
     #ifdef _CANARY_PROTECTION
 
+    case LEFT_CANARY_STRUCT_ERROR:
+        fprintf(log_file, "LEFT CANARY ERROR. SOMEONE WAS TRYING TO CHANGE STRUCT VALUES (not with push or pop)\n\n");
+        exit(1);
+    case RIGHT_CANARY_STRUCT_ERROR:
+        fprintf(log_file, "RIGHT CANARY ERROR. SOMEONE WAS TRYING TO CHANGE STRUCT VALUES (not with push or pop)\n\n");
+        exit(1);
     case LEFT_CANARY_DATA_ERROR:
         fprintf(log_file, "LEFT CANARY ERROR. SOMEONE WAS TRYING TO CHANGE DATA VALUES (not with push or pop)\n\n");
         //exit(1);
@@ -150,14 +203,14 @@ static void tell_error(long long int error_value)
         fprintf(log_file, "RIGHT CANARY ERROR. SOMEONE WAS TRYING TO CHANGE DATA VALUES (not with push or pop)\n\n");
         //exit(1);
         break;
+
     #endif
 
     #ifdef _HASH_PROTECTION
 
     case HASH_DETECTED_INVALID_CHANGES_STRUCT:
         fprintf(log_file, "HASH DETECTED INVALID CHANGES. SOMEONE WAS TRYING TO CHANGE STRUCT VALUES\n\n");
-        //exit(1);
-        break;
+        exit(1);
     case HASH_DETECTED_INVALID_CHANGES_DATA:
         fprintf(log_file, "HASH DETECTED INVALID CHANGES. SOMEONE WAS TRYING TO CHANGE DATA VALUES\n\n");
         //exit(1);
@@ -168,8 +221,6 @@ static void tell_error(long long int error_value)
         fprintf(log_file, "Ooooh...we don't know what error was happened\n\n");
         break;
     }
-
-    fprintf(log_file, "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\n");
 
     fclose(log_file);
 }

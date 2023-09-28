@@ -5,7 +5,7 @@
 
 #include "stack.h"
 
-static elem_t* stack_recalloc(stack* stk, int new_size, int old_size);
+static elem_t* stack_recalloc(stack* stk, long long new_size, long long old_size);
 
 void stack_ctor(stack* stk, ON_DEBUG(function_info info))
 {
@@ -14,6 +14,7 @@ void stack_ctor(stack* stk, ON_DEBUG(function_info info))
     #ifdef _CANARY_PROTECTION
 
     char* temp = (char*) calloc(1, MIN_CAPACITY * sizeof(elem_t) + 2 * sizeof(canary_t));
+    assert(temp);
 
     stk->left_canary_data  = (canary_t*) temp;
     stk->right_canary_data = (canary_t*) ((size_t) temp + MIN_CAPACITY * sizeof(elem_t) + sizeof(canary_t));
@@ -87,26 +88,25 @@ void stack_dtor(stack* stk)
 {
     stack_verify(stk);
 
-    stk->capacity = 0;
-    stk->size = 0;
+    stk->capacity = DTOR_GARBAGE;
+    stk->size     = DTOR_GARBAGE;
 
     #ifdef _HASH_PROTECTION
-        HASH_PROTECTION_FUNCTION_CALL()
+        stk->hash_struct = stk->hash_data = 0;
     #endif
 
     #ifdef _CANARY_PROTECTION
         free(stk->left_canary_data);
 
-        stk->func_info.filename = nullptr;
-        stk->func_info.function_name = nullptr;
-        stk->func_info.line = 0;
-        stk->func_info.variable_name = nullptr;
+        stk->left_canary_struct = stk->right_canary_struct = 0;
+
+        stk->func_info = {};
     #else
         free(stk->data);
     #endif
 }
 
-static elem_t* stack_recalloc(stack* stk, int new_size, int old_size)
+static elem_t* stack_recalloc(stack* stk, long long new_size, long long old_size)
 {
     #ifdef _CANARY_PROTECTION
 
@@ -135,7 +135,7 @@ static elem_t* stack_recalloc(stack* stk, int new_size, int old_size)
 
     if (new_size > old_size)
     {
-        for (int i = old_size; i < new_size; i++)
+        for (long long i = old_size; i < new_size; i++)
         {
             (stk->data)[i] = GARBAGE;
         }

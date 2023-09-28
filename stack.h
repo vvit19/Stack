@@ -8,6 +8,7 @@ typedef int elem_t;
 
 const int MIN_CAPACITY = 5;
 const int GARBAGE = 696969;
+const long long DTOR_GARBAGE = 0xCAFEBABE;
 
 #ifdef _CANARY_PROTECTION
 
@@ -16,7 +17,7 @@ const canary_t CANARY_CONST = 0xDEADBABE;
 
 #endif
 
-const int ERRORS_NUM = 13;
+const int ERRORS_NUM = 14;
 
 enum stack_errors
 {
@@ -26,18 +27,19 @@ enum stack_errors
     DATARRAY_NULLPTR  = 8,
     SIZE_BIGGER_THAN_CAPACITY = 16,
     TOO_BIG_MEMORYSIZE_FOR_CALLOC = 32,
+    TWICE_DTORED                  = 64,
 
     #ifdef _CANARY_PROTECTION
-        LEFT_CANARY_DATA_ERROR    = 64,
-        RIGHT_CANARY_DATA_ERROR   = 128,
-        LEFT_CANARY_STRUCT_ERROR  = 256,
-        RIGHT_CANARY_STRUCT_ERROR = 512,
+        LEFT_CANARY_DATA_ERROR    = 128,
+        RIGHT_CANARY_DATA_ERROR   = 256,
+        LEFT_CANARY_STRUCT_ERROR  = 512,
+        RIGHT_CANARY_STRUCT_ERROR = 1024,
     #endif
 
     #ifdef _HASH_PROTECTION
-        HASH_DETECTED_INVALID_CHANGES_STRUCT = 1024,
-        HASH_DETECTED_INVALID_CHANGES_DATA   = 2048,
-        HASH_NOT_NULLIFIED                   = 4096,
+        HASH_DETECTED_INVALID_CHANGES_STRUCT = 2048,
+        HASH_DETECTED_INVALID_CHANGES_DATA   = 4096,
+        HASH_NOT_NULLIFIED                   = 8192,
     #endif
 };  //do not forget to change errors num due to flags you have
 
@@ -65,8 +67,8 @@ struct stack
     #endif
 
     elem_t* data;
-    int capacity;
-    int size;
+    long long capacity;
+    long long size;
 
     #ifdef _DEBUG
         function_info func_info;

@@ -4,7 +4,7 @@
 
 int main()
 {
-    stack stk;
+    stack stk = {};
 
     STACK_CTOR(&stk);
 
