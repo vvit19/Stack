@@ -42,21 +42,18 @@ static long long int find_stack_errors(stack* stk)
     if (stk == nullptr)
     {
         errors |= STACK_NULLPTR;
-        tell_error(stk, STACK_NULLPTR);
 
         return errors;
     }
     if (stk->data == nullptr)
     {
         errors |= DATARRAY_NULLPTR;
-        tell_error(stk, DATARRAY_NULLPTR);
 
         return errors;
     }
     if (stk->size == DTOR_GARBAGE && stk->capacity == DTOR_GARBAGE)
     {
         errors |= ACTIONS_AFTER_DTOR;
-        tell_error(stk, ACTIONS_AFTER_DTOR);
 
         return errors;
     }
@@ -90,7 +87,6 @@ static long long int find_stack_errors(stack* stk)
     if (stk->hash_struct != hash_struct_ref)
     {
         errors |= HASH_DETECTED_INVALID_CHANGES_STRUCT;
-        tell_error(stk, HASH_DETECTED_INVALID_CHANGES_STRUCT);
 
         return errors;
     }
