@@ -47,13 +47,6 @@ static long long int find_stack_errors(stack* stk)
 
         return errors;
     }
-    if (stk->size == DTOR_GARBAGE)
-    {
-        errors |= TWICE_DTORED;
-        tell_error(TWICE_DTORED);
-
-        return errors;
-    }
     if (stk->data == nullptr)
     {
         errors |= DATARRAY_NULLPTR;
@@ -61,29 +54,13 @@ static long long int find_stack_errors(stack* stk)
 
         return errors;
     }
-    if (stk->size < 0)
+    if (stk->size == DTOR_GARBAGE && stk->capacity == DTOR_GARBAGE)
     {
-        errors |= NEGATIVE_SIZE;
-    }
-    if (stk->capacity < 0)
-    {
-        errors |= NEGATIVE_CAPACITY;
-    }
-    if (stk->size > stk->capacity)
-    {
-        errors |= SIZE_BIGGER_THAN_CAPACITY;
-    }
-    if (stk->capacity * sizeof(elem_t) >= SIZE_MAX)
-    {
-        errors |= TOO_BIG_MEMORYSIZE_FOR_CALLOC;
-    }
+        errors |= ACTIONS_AFTER_DTOR;
+        tell_error(ACTIONS_AFTER_DTOR);
 
-    #ifdef _CANARY_PROTECTION
-
-    if (memcmp(stk->left_canary_data,  &CANARY_CONST, sizeof(canary_t)) != 0) errors |=  LEFT_CANARY_DATA_ERROR;
-    if (memcmp(stk->right_canary_data, &CANARY_CONST, sizeof(canary_t)) != 0) errors |= RIGHT_CANARY_DATA_ERROR;
-
-    #endif
+        return errors;
+    }
 
     #ifdef _HASH_PROTECTION
 
@@ -107,6 +84,30 @@ static long long int find_stack_errors(stack* stk)
     {
         errors |= HASH_DETECTED_INVALID_CHANGES_DATA;
     }
+
+    #endif
+
+    if (stk->size < 0)
+    {
+        errors |= NEGATIVE_SIZE;
+    }
+    if (stk->capacity < 0)
+    {
+        errors |= NEGATIVE_CAPACITY;
+    }
+    if (stk->size > stk->capacity)
+    {
+        errors |= SIZE_BIGGER_THAN_CAPACITY;
+    }
+    if (stk->capacity * sizeof(elem_t) >= SIZE_MAX)
+    {
+        errors |= TOO_BIG_MEMORYSIZE_FOR_CALLOC;
+    }
+
+    #ifdef _CANARY_PROTECTION
+
+    if (memcmp(stk->left_canary_data,  &CANARY_CONST, sizeof(canary_t)) != 0) errors |=  LEFT_CANARY_DATA_ERROR;
+    if (memcmp(stk->right_canary_data, &CANARY_CONST, sizeof(canary_t)) != 0) errors |= RIGHT_CANARY_DATA_ERROR;
 
     #endif
 
@@ -183,8 +184,8 @@ static void tell_error(long long int error_value)
     case TOO_BIG_MEMORYSIZE_FOR_CALLOC:
         fprintf(log_file, "TOO BIG MEMORY SIZE FOR CALLOC (SO CAN'T ALLOCATE)\n\n");
         exit(1);
-    case TWICE_DTORED:
-        fprintf(log_file, "STACK DTORED TWICE\n\n");
+    case ACTIONS_AFTER_DTOR:
+        fprintf(log_file, "ACTIONS WITH STACK AFTER DTOR\n\n");
         exit(1);
 
     #ifdef _CANARY_PROTECTION

@@ -64,7 +64,7 @@ void stack_push(stack* stk, elem_t value)
     stack_verify(stk);
 }
 
-void stack_pop(stack* stk)
+elem_t stack_pop(stack* stk)
 {
     stack_verify(stk);
 
@@ -75,6 +75,7 @@ void stack_pop(stack* stk)
     }
 
     stk->size--;
+    elem_t popped_value = stk->data[stk->size];
     stk->data[stk->size] = GARBAGE;
 
     #ifdef _HASH_PROTECTION
@@ -82,6 +83,8 @@ void stack_pop(stack* stk)
     #endif
 
     stack_verify(stk);
+
+    return popped_value;
 }
 
 void stack_dtor(stack* stk)
@@ -91,10 +94,6 @@ void stack_dtor(stack* stk)
     stk->capacity = DTOR_GARBAGE;
     stk->size     = DTOR_GARBAGE;
 
-    #ifdef _HASH_PROTECTION
-        stk->hash_struct = stk->hash_data = 0;
-    #endif
-
     #ifdef _CANARY_PROTECTION
         free(stk->left_canary_data);
 
@@ -103,6 +102,11 @@ void stack_dtor(stack* stk)
         stk->func_info = {};
     #else
         free(stk->data);
+    #endif
+
+    #ifdef _HASH_PROTECTION
+        stk->hash_struct = stk->hash_data = 0;
+        stk->hash_struct = poltorashka_hash((const char*) stk, sizeof(stack));
     #endif
 }
 

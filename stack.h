@@ -27,7 +27,7 @@ enum stack_errors
     DATARRAY_NULLPTR  = 8,
     SIZE_BIGGER_THAN_CAPACITY = 16,
     TOO_BIG_MEMORYSIZE_FOR_CALLOC = 32,
-    TWICE_DTORED                  = 64,
+    ACTIONS_AFTER_DTOR                  = 64,
 
     #ifdef _CANARY_PROTECTION
         LEFT_CANARY_DATA_ERROR    = 128,
@@ -94,9 +94,9 @@ struct stack
 
 void stack_ctor(stack* stk ON_DEBUG(, function_info func_info));
 
-void stack_push(stack* stk, elem_t value);
-void stack_pop(stack* stk);
-void stack_dtor(stack* stk);
+void stack_push (stack* stk, elem_t value);
+elem_t stack_pop(stack* stk);
+void stack_dtor (stack* stk);
 
 #ifdef _DEBUG
     void stack_dump(stack* stk);
