@@ -61,6 +61,24 @@ static long long int find_stack_errors(stack* stk)
         return errors;
     }
 
+    #ifdef _CANARY_PROTECTION
+
+    if (stk->left_canary_struct != CANARY_CONST)
+    {
+        errors |= LEFT_CANARY_STRUCT_ERROR;
+
+        return errors;
+    }
+
+    if (stk->right_canary_struct != CANARY_CONST)
+    {
+        errors |= RIGHT_CANARY_STRUCT_ERROR;
+
+        return errors;
+    }
+
+    #endif
+
     #ifdef _HASH_PROTECTION
 
     long unsigned int hash_struct_ref = stk->hash_struct;

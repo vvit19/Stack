@@ -13,6 +13,8 @@ int main()
         stack_push(&stk, i);
     }
 
+    stk.left_canary_struct = 0;
+    stk.capacity = 1200;
     for (int i = 0; i < 5; i++)
     {
         stack_pop(&stk);
