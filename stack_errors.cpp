@@ -6,7 +6,7 @@
 #include "stack.h"
 
 static long long int find_stack_errors(stack* stk);
-static void tell_error(long long int error_value);
+static void tell_error(stack* stk, long long int error_value);
 
 void stack_verify(stack* stk)
 {
@@ -24,8 +24,7 @@ void stack_verify(stack* stk)
         {
             #ifdef _DEBUG
 
-            tell_error(error_value);
-            stack_dump(stk);
+            tell_error(stk, error_value);
 
             #else
 
@@ -43,21 +42,21 @@ static long long int find_stack_errors(stack* stk)
     if (stk == nullptr)
     {
         errors |= STACK_NULLPTR;
-        tell_error(STACK_NULLPTR);
+        tell_error(stk, STACK_NULLPTR);
 
         return errors;
     }
     if (stk->data == nullptr)
     {
         errors |= DATARRAY_NULLPTR;
-        tell_error(DATARRAY_NULLPTR);
+        tell_error(stk, DATARRAY_NULLPTR);
 
         return errors;
     }
     if (stk->size == DTOR_GARBAGE && stk->capacity == DTOR_GARBAGE)
     {
         errors |= ACTIONS_AFTER_DTOR;
-        tell_error(ACTIONS_AFTER_DTOR);
+        tell_error(stk, ACTIONS_AFTER_DTOR);
 
         return errors;
     }
@@ -73,7 +72,7 @@ static long long int find_stack_errors(stack* stk)
     if (stk->hash_struct != hash_struct_ref)
     {
         errors |= HASH_DETECTED_INVALID_CHANGES_STRUCT;
-        tell_error(HASH_DETECTED_INVALID_CHANGES_STRUCT);
+        tell_error(stk, HASH_DETECTED_INVALID_CHANGES_STRUCT);
 
         return errors;
     }
@@ -151,16 +150,15 @@ void stack_dump(stack* stk)
         fprintf(log_file, "*[%d] = %d\n", i, stk->data[i]);
     }
 
-    fprintf(log_file, "--------------------------------------------------------------------------------------\n\n");
     fclose(log_file);
 }
 
-static void tell_error(long long int error_value)
+static void tell_error(stack* stk, long long int error_value)
 {
     FILE* log_file = fopen(LOG_FILE, "a");
     if (log_file == nullptr)
     {
-        fprintf(log_file, "LOG_FILE NOT FOUND\n\n");
+        fprintf(stderr, "LOG_FILE NOT FOUND\n\n");
         exit(1);
     }
 
@@ -168,41 +166,47 @@ static void tell_error(long long int error_value)
     {
     case STACK_NULLPTR:
         fprintf(log_file, "STACK_NULLPTR ERROR\n\n");
-        exit(1);
+        break;
     case NEGATIVE_SIZE:
         fprintf(log_file, "NEGATIVE_SIZE ERROR\n\n");
-        exit(1);
+        stack_dump(stk);
+        break;
     case NEGATIVE_CAPACITY:
         fprintf(log_file, "NEGATIVE_CAPACITY ERROR\n\n");
-        exit(1);
+        stack_dump(stk);
+        break;
     case DATARRAY_NULLPTR:
         fprintf(log_file, "DATA ARRAY NULLPTR\n\n");
-        exit(1);
+        break;
     case SIZE_BIGGER_THAN_CAPACITY:
         fprintf(log_file, "SIZE IS BIGGER THAN CAPACITY\n\n");
-        exit(1);
+        stack_dump(stk);
+        break;
     case TOO_BIG_MEMORYSIZE_FOR_CALLOC:
         fprintf(log_file, "TOO BIG MEMORY SIZE FOR CALLOC (SO CAN'T ALLOCATE)\n\n");
-        exit(1);
+        stack_dump(stk);
+        break;
     case ACTIONS_AFTER_DTOR:
         fprintf(log_file, "ACTIONS WITH STACK AFTER DTOR\n\n");
-        exit(1);
+        break;
 
     #ifdef _CANARY_PROTECTION
 
     case LEFT_CANARY_STRUCT_ERROR:
         fprintf(log_file, "LEFT CANARY ERROR. SOMEONE WAS TRYING TO CHANGE STRUCT VALUES (not with push or pop)\n\n");
-        exit(1);
+        stack_dump(stk);
+        break;
     case RIGHT_CANARY_STRUCT_ERROR:
         fprintf(log_file, "RIGHT CANARY ERROR. SOMEONE WAS TRYING TO CHANGE STRUCT VALUES (not with push or pop)\n\n");
-        exit(1);
+        stack_dump(stk);
+        break;
     case LEFT_CANARY_DATA_ERROR:
         fprintf(log_file, "LEFT CANARY ERROR. SOMEONE WAS TRYING TO CHANGE DATA VALUES (not with push or pop)\n\n");
-        //exit(1);
+        stack_dump(stk);
         break;
     case RIGHT_CANARY_DATA_ERROR:
         fprintf(log_file, "RIGHT CANARY ERROR. SOMEONE WAS TRYING TO CHANGE DATA VALUES (not with push or pop)\n\n");
-        //exit(1);
+        stack_dump(stk);
         break;
 
     #endif
@@ -211,10 +215,10 @@ static void tell_error(long long int error_value)
 
     case HASH_DETECTED_INVALID_CHANGES_STRUCT:
         fprintf(log_file, "HASH DETECTED INVALID CHANGES. SOMEONE WAS TRYING TO CHANGE STRUCT VALUES\n\n");
-        exit(1);
+        break;
     case HASH_DETECTED_INVALID_CHANGES_DATA:
         fprintf(log_file, "HASH DETECTED INVALID CHANGES. SOMEONE WAS TRYING TO CHANGE DATA VALUES\n\n");
-        //exit(1);
+        stack_dump(stk);
         break;
     #endif
 
@@ -223,6 +227,9 @@ static void tell_error(long long int error_value)
         break;
     }
 
+    fprintf(log_file, "--------------------------------------------------------------------------------------\n\n");
+
     fclose(log_file);
+    exit(1);
 }
 #endif
