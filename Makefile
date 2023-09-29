@@ -25,10 +25,10 @@ OBJ = $(patsubst $(SRC_FOLDER)%.cpp, $(OBJ_FOLDER)%.o, $(SRC))
 all: $(TARGET)
 
 $(TARGET) : $(OBJ)
-	$(CC) $(CFlAGS) $(OBJ) -D $(DEFINES) -o $(TARGET)
+	@$(CC) $(CFlAGS) $(OBJ) -D $(DEFINES) -o $(TARGET)
 
 $(OBJ_FOLDER)%.o : $(SRC_FOLDER)%.cpp
-	$(CC) $(CFLAGS) -c $< $(DEFINES) -o $@
+	@$(CC) $(CFLAGS) -c $< $(DEFINES) -o $@
 
 clean:
 	rm -rf $(TARGET) $(OBJ) *.exe *.out

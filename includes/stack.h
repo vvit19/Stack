@@ -2,7 +2,6 @@
 #define STACK_H
 
 #include <cstdio>
-#include <cstdint>
 
 typedef int elem_t;
 
@@ -17,7 +16,7 @@ const canary_t CANARY_CONST = 0xDEADBABE;
 
 #endif
 
-const int ERRORS_NUM = 14;
+const int ERRORS_NUM = 13;
 
 enum stack_errors
 {
@@ -26,20 +25,19 @@ enum stack_errors
     NEGATIVE_CAPACITY = 4,
     DATARRAY_NULLPTR  = 8,
     SIZE_BIGGER_THAN_CAPACITY = 16,
-    TOO_BIG_MEMORYSIZE_FOR_CALLOC = 32,
-    ACTIONS_AFTER_DTOR                  = 64,
+    ACTIONS_AFTER_DTOR        = 32,
 
     #ifdef _CANARY_PROTECTION
-        LEFT_CANARY_DATA_ERROR    = 128,
-        RIGHT_CANARY_DATA_ERROR   = 256,
-        LEFT_CANARY_STRUCT_ERROR  = 512,
-        RIGHT_CANARY_STRUCT_ERROR = 1024,
+        LEFT_CANARY_DATA_ERROR    = 64,
+        RIGHT_CANARY_DATA_ERROR   = 128,
+        LEFT_CANARY_STRUCT_ERROR  = 256,
+        RIGHT_CANARY_STRUCT_ERROR = 512,
     #endif
 
     #ifdef _HASH_PROTECTION
-        HASH_DETECTED_INVALID_CHANGES_STRUCT = 2048,
-        HASH_DETECTED_INVALID_CHANGES_DATA   = 4096,
-        HASH_NOT_NULLIFIED                   = 8192,
+        HASH_DETECTED_INVALID_CHANGES_STRUCT = 1024,
+        HASH_DETECTED_INVALID_CHANGES_DATA   = 2048,
+        HASH_NOT_NULLIFIED                   = 4096,
     #endif
 };  //do not forget to change errors num due to flags you have
 

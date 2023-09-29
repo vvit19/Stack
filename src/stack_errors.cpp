@@ -112,10 +112,6 @@ static long long int find_stack_errors(stack* stk)
     {
         errors |= SIZE_BIGGER_THAN_CAPACITY;
     }
-    if (stk->capacity * sizeof(elem_t) >= SIZE_MAX)
-    {
-        errors |= TOO_BIG_MEMORYSIZE_FOR_CALLOC;
-    }
 
     #ifdef _CANARY_PROTECTION
 
@@ -194,10 +190,6 @@ static void tell_error(stack* stk, long long int error_value)
         break;
     case SIZE_BIGGER_THAN_CAPACITY:
         fprintf(log_file, "SIZE IS BIGGER THAN CAPACITY\n\n");
-        stack_dump(stk);
-        break;
-    case TOO_BIG_MEMORYSIZE_FOR_CALLOC:
-        fprintf(log_file, "TOO BIG MEMORY SIZE FOR CALLOC (SO CAN'T ALLOCATE)\n\n");
         stack_dump(stk);
         break;
     case ACTIONS_AFTER_DTOR:
