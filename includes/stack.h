@@ -16,7 +16,7 @@ const canary_t CANARY_CONST = 0xDEADBABE;
 
 #endif
 
-const int ERRORS_NUM = 13;
+const int ERRORS_NUM = 12;
 
 enum stack_errors
 {
@@ -37,7 +37,6 @@ enum stack_errors
     #ifdef _HASH_PROTECTION
         HASH_DETECTED_INVALID_CHANGES_STRUCT = 1024,
         HASH_DETECTED_INVALID_CHANGES_DATA   = 2048,
-        HASH_NOT_NULLIFIED                   = 4096,
     #endif
 };  //do not forget to change errors num due to flags you have
 
