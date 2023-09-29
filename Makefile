@@ -1,6 +1,4 @@
-TARGET = stack
-
-CFlAGS = -D_DEBUG -D_CANARY_PROTECTION -D_HASH_PROTECTION -ggdb3 -std=c++17 -O0 -Wall -Wextra -Weffc++ \
+CFlAGS = -ggdb3 -std=c++17 -O0 -Wall -Wextra -Weffc++ \
 -Waggressive-loop-optimizations -Wc++14-compat -Wmissing-declarations -Wcast-align -Wcast-qual -Wchar-subscripts \
 -Wconditionally-supported -Wconversion -Wctor-dtor-privacy -Wempty-body -Wfloat-equal -Wformat-nonliteral \
 -Wformat-security -Wformat-signedness -Wformat=2 -Winline -Wlogical-op -Wnon-virtual-dtor -Wopenmp-simd \
@@ -13,25 +11,24 @@ CFlAGS = -D_DEBUG -D_CANARY_PROTECTION -D_HASH_PROTECTION -ggdb3 -std=c++17 -O0 
 -fno-omit-frame-pointer -Wstack-usage=8192 -pie -fPIE -Werror=vla \
 -fsanitize=address,alignment,bool,bounds,enum,float-cast-overflow,float-divide-by-zero,integer-divide-by-zero,leak,nonnull-attribute,null,object-size,return,returns-nonnull-attribute,shift,signed-integer-overflow,undefined,unreachable,vla-bound,vptr, \
 
-COMPILE = g++ -c $^ $(CFlAGS)
+DEFINES = -D_DEBUG -D_CANARY_PROTECTION -D_HASH_PROTECTION
 
-.PHONY: all
+TARGET = stack
+СС = g++
+
+SRC_FOLDER = ./src/
+OBJ_FOLDER = ./obj/
+
+SRC = $(wildcard $(SRC_FOLDER)*.cpp)
+OBJ = $(patsubst $(SRC_FOLDER)%.cpp, $(OBJ_FOLDER)%.o, $(SRC))
+
 all: $(TARGET)
 
-$(TARGET): main.o stack.o stack_errors.o
-	@g++ $^ -o $(TARGET) $(CFlAGS)
+$(TARGET) : $(OBJ)
+	$(CC) $(CFlAGS) $(OBJ) -D $(DEFINES) -o $(TARGET)
 
-main.o: main.cpp
-	@$(COMPILE)
+$(OBJ_FOLDER)%.o : $(SRC_FOLDER)%.cpp
+	$(CC) $(CFLAGS) -c $< $(DEFINES) -o $@
 
-stack.o: stack.cpp
-	@$(COMPILE)
-
-stack_errors.o: stack_errors.cpp
-	@$(COMPILE)
-
-.PHONY: clean
 clean:
-	rm -rf $(TARGET) *.o
-	rm -rf *.exe
-	rm -rf *.out
+	rm -rf $(TARGET) $(OBJ) *.exe *.out

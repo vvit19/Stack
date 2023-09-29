@@ -3,11 +3,11 @@
 #include <cstring>
 #include <cstdint>
 
-#include "stack.h"
+#include "../includes/stack.h"
 
 static elem_t* stack_recalloc(stack* stk, long long new_size, long long old_size);
 
-void stack_ctor(stack* stk, ON_DEBUG(function_info info))
+void stack_ctor(stack* stk ON_DEBUG(, function_info info))
 {
     assert(stk);
 

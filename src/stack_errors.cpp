@@ -3,7 +3,7 @@
 #include <cstring>
 #include <cassert>
 
-#include "stack.h"
+#include "../includes/stack.h"
 
 static long long int find_stack_errors(stack* stk);
 static void tell_error(stack* stk, long long int error_value);

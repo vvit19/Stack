@@ -90,17 +90,17 @@ struct stack
     #define ON_DEBUG(...)
 #endif
 
-#define STACK_CTOR(stk) stack_ctor(stk, ON_DEBUG( {#stk, __PRETTY_FUNCTION__, __FILE__, __LINE__} ))
-
 void stack_ctor(stack* stk ON_DEBUG(, function_info func_info));
+
+#define STACK_CTOR(stk) stack_ctor(stk ON_DEBUG(, {#stk, __PRETTY_FUNCTION__, __FILE__, __LINE__} ))
 
 void stack_push (stack* stk, elem_t value);
 elem_t stack_pop(stack* stk);
 void stack_dtor (stack* stk);
+void stack_verify(stack* stk);
 
 #ifdef _DEBUG
     void stack_dump(stack* stk);
-    void stack_verify(stack* stk);
 #endif
 
 #ifdef _HASH_PROTECTION
