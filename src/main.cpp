@@ -13,9 +13,10 @@ int main()
         stack_push(&stk, i);
     }
 
+    elem_t popped_value = 0;
     for (int i = 0; i < 5; i++)
     {
-        stack_pop(&stk);
+        stack_pop(&stk, &popped_value);
     }
 
     stack_dtor(&stk);

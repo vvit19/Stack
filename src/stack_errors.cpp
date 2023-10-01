@@ -8,7 +8,7 @@
 static long long int find_stack_errors(stack* stk);
 static void tell_error(stack* stk, long long int error_value);
 
-void stack_verify(stack* stk)
+stack_errors stack_verify(stack* stk)
 {
     long long int errors = find_stack_errors(stk);
     long long int error_value = 1;
@@ -33,6 +33,9 @@ void stack_verify(stack* stk)
             #endif
         }
     }
+
+    if (errors == 0) return NO_ERROR;
+    return (stack_errors) error_value;
 }
 
 static long long int find_stack_errors(stack* stk)
@@ -58,24 +61,6 @@ static long long int find_stack_errors(stack* stk)
         return errors;
     }
 
-    #ifdef _CANARY_PROTECTION
-
-    if (stk->left_canary_struct != CANARY_CONST)
-    {
-        errors |= LEFT_CANARY_STRUCT_ERROR;
-
-        return errors;
-    }
-
-    if (stk->right_canary_struct != CANARY_CONST)
-    {
-        errors |= RIGHT_CANARY_STRUCT_ERROR;
-
-        return errors;
-    }
-
-    #endif
-
     #ifdef _HASH_PROTECTION
 
     long unsigned int hash_struct_ref = stk->hash_struct;
@@ -96,6 +81,24 @@ static long long int find_stack_errors(stack* stk)
     if (stk->hash_data != hash_data_ref)
     {
         errors |= HASH_DETECTED_INVALID_CHANGES_DATA;
+    }
+
+    #endif
+
+    #ifdef _CANARY_PROTECTION
+
+    if (stk->left_canary_struct != CANARY_CONST)
+    {
+        errors |= LEFT_CANARY_STRUCT_ERROR;
+
+        return errors;
+    }
+
+    if (stk->right_canary_struct != CANARY_CONST)
+    {
+        errors |= RIGHT_CANARY_STRUCT_ERROR;
+
+        return errors;
     }
 
     #endif
@@ -200,11 +203,9 @@ static void tell_error(stack* stk, long long int error_value)
 
     case LEFT_CANARY_STRUCT_ERROR:
         fprintf(log_file, "LEFT CANARY ERROR. SOMEONE WAS TRYING TO CHANGE STRUCT VALUES (not with push or pop)\n\n");
-        stack_dump(stk);
         break;
     case RIGHT_CANARY_STRUCT_ERROR:
         fprintf(log_file, "RIGHT CANARY ERROR. SOMEONE WAS TRYING TO CHANGE STRUCT VALUES (not with push or pop)\n\n");
-        stack_dump(stk);
         break;
     case LEFT_CANARY_DATA_ERROR:
         fprintf(log_file, "LEFT CANARY ERROR. SOMEONE WAS TRYING TO CHANGE DATA VALUES (not with push or pop)\n\n");

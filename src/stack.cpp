@@ -1,25 +1,26 @@
 #include <cassert>
 #include <cstdlib>
 #include <cstring>
-#include <cstdint>
 
 #include "../includes/stack.h"
 
 static elem_t* stack_recalloc(stack* stk, long long new_size, long long old_size);
+static void stack_recalloc_up(stack* stk);
+static void stack_recalloc_down(stack* stk);
+static void fill_garbage(stack* stk, long long new_size, long long old_size);
 
-void stack_ctor(stack* stk ON_DEBUG(, function_info info))
+stack_errors stack_ctor(stack* stk ON_DEBUG(, function_info info))
 {
     assert(stk);
 
     #ifdef _CANARY_PROTECTION
 
     char* temp = (char*) calloc(1, MIN_CAPACITY * sizeof(elem_t) + 2 * sizeof(canary_t));
-    assert(temp);
+
+    stk->data = (elem_t*) ((size_t) temp + sizeof(canary_t));
 
     stk->left_canary_data  = (canary_t*) temp;
     stk->right_canary_data = (canary_t*) ((size_t) temp + MIN_CAPACITY * sizeof(elem_t) + sizeof(canary_t));
-
-    stk->data = (elem_t*) ((size_t) temp + sizeof(canary_t));
 
     memcpy(stk->left_canary_data,  &CANARY_CONST, sizeof(canary_t));
     memcpy(stk->right_canary_data, &CANARY_CONST, sizeof(canary_t));
@@ -42,17 +43,17 @@ void stack_ctor(stack* stk ON_DEBUG(, function_info info))
         HASH_PROTECTION_FUNCTION_CALL()
     #endif
 
-    stack_verify(stk);
+    stack_errors exit_code = stack_verify(stk);
+    return exit_code;
 }
 
-void stack_push(stack* stk, elem_t value)
+stack_errors stack_push(stack* stk, elem_t value)
 {
     stack_verify(stk);
 
     if (stk->size >= stk->capacity)
     {
-        stk->capacity *= 2;
-        stk->data = stack_recalloc(stk, stk->capacity, stk->capacity / 2);
+        stack_recalloc_up(stk);
     }
 
     stk->data[stk->size++] = value;
@@ -61,30 +62,29 @@ void stack_push(stack* stk, elem_t value)
         HASH_PROTECTION_FUNCTION_CALL()
     #endif
 
-    stack_verify(stk);
+    stack_errors exit_code = stack_verify(stk);
+    return exit_code;
 }
 
-elem_t stack_pop(stack* stk)
+stack_errors stack_pop(stack* stk, elem_t* popped_value)
 {
     stack_verify(stk);
 
     if (stk->size <= stk->capacity / 4 && stk->capacity >= MIN_CAPACITY)
     {
-        stk->capacity /= 2;
-        stk->data = stack_recalloc(stk, stk->capacity, stk->capacity * 2);
+        stack_recalloc_down(stk);
     }
 
     stk->size--;
-    elem_t popped_value = stk->data[stk->size];
+    *popped_value = stk->data[stk->size];
     stk->data[stk->size] = GARBAGE;
 
     #ifdef _HASH_PROTECTION
         HASH_PROTECTION_FUNCTION_CALL()
     #endif
 
-    stack_verify(stk);
-
-    return popped_value;
+    stack_errors exit_code = stack_verify(stk);
+    return exit_code;
 }
 
 void stack_dtor(stack* stk)
@@ -108,6 +108,20 @@ void stack_dtor(stack* stk)
         stk->hash_struct = stk->hash_data = 0;
         stk->hash_struct = poltorashka_hash((const char*) stk, sizeof(stack));
     #endif
+}
+
+static void stack_recalloc_up(stack* stk)
+{
+    long long old_capacity = stk->capacity;
+    stk->capacity *= 2;
+    stk->data = stack_recalloc(stk, stk->capacity, old_capacity);
+}
+
+static void stack_recalloc_down(stack* stk)
+{
+    long long old_capacity = stk->capacity;
+    stk->capacity /= 2;
+    stk->data = stack_recalloc(stk, stk->capacity, old_capacity);
 }
 
 static elem_t* stack_recalloc(stack* stk, long long new_size, long long old_size)
@@ -140,13 +154,21 @@ static elem_t* stack_recalloc(stack* stk, long long new_size, long long old_size
 
     if (new_size > old_size)
     {
+        fill_garbage(stk, new_size, old_size);
+    }
+
+    return stk->data;
+}
+
+static void fill_garbage(stack* stk, long long new_size, long long old_size)
+{
+    if (new_size > old_size)
+    {
         for (long long i = old_size; i < new_size; i++)
         {
             (stk->data)[i] = GARBAGE;
         }
     }
-
-    return stk->data;
 }
 
 #ifdef _HASH_PROTECTION

@@ -16,10 +16,11 @@ const canary_t CANARY_CONST = 0xDEADBABE;
 
 #endif
 
-const int ERRORS_NUM = 12;
+const int ERRORS_NUM = 13;
 
 enum stack_errors
 {
+    NO_ERROR = 0,
     STACK_NULLPTR = 1,
     NEGATIVE_SIZE = 2,
     NEGATIVE_CAPACITY = 4,
@@ -87,14 +88,13 @@ struct stack
     #define ON_DEBUG(...)
 #endif
 
-void stack_ctor(stack* stk ON_DEBUG(, function_info func_info));
-
+stack_errors stack_ctor(stack* stk ON_DEBUG(, function_info func_info));
 #define STACK_CTOR(stk) stack_ctor(stk ON_DEBUG(, {#stk, __PRETTY_FUNCTION__, __FILE__, __LINE__} ))
 
-void stack_push (stack* stk, elem_t value);
-elem_t stack_pop(stack* stk);
+stack_errors stack_push (stack* stk, elem_t value);
+stack_errors stack_pop(stack* stk, elem_t* popped_value);
+stack_errors stack_verify(stack* stk);
 void stack_dtor (stack* stk);
-void stack_verify(stack* stk);
 
 #ifdef _DEBUG
     void stack_dump(stack* stk);

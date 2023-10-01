@@ -11,10 +11,10 @@ CFlAGS = -ggdb3 -std=c++17 -O0 -Wall -Wextra -Weffc++ \
 -fno-omit-frame-pointer -Wstack-usage=8192 -pie -fPIE -Werror=vla \
 -fsanitize=address,alignment,bool,bounds,enum,float-cast-overflow,float-divide-by-zero,integer-divide-by-zero,leak,nonnull-attribute,null,object-size,return,returns-nonnull-attribute,shift,signed-integer-overflow,undefined,unreachable,vla-bound,vptr, \
 
-DEFINES = -D_DEBUG -D_CANARY_PROTECTION -D_HASH_PROTECTION
-
-TARGET = stack
 СС = g++
+TARGET = stack
+IFLAGS = -I./includes/
+DEFINES = -D_DEBUG -D_CANARY_PROTECTION -D_HASH_PROTECTION
 
 SRC_FOLDER = ./src/
 OBJ_FOLDER = ./obj/
@@ -25,10 +25,10 @@ OBJ = $(patsubst $(SRC_FOLDER)%.cpp, $(OBJ_FOLDER)%.o, $(SRC))
 all: $(TARGET)
 
 $(TARGET) : $(OBJ)
-	@$(CC) $(CFlAGS) $(OBJ) -D $(DEFINES) -o $(TARGET)
+	@$(CC) $(IFLAGS) $(CFlAGS) $(OBJ) -D $(DEFINES) -o $(TARGET)
 
 $(OBJ_FOLDER)%.o : $(SRC_FOLDER)%.cpp
-	@$(CC) $(CFLAGS) -c $< $(DEFINES) -o $@
+	@$(CC) $(IFLGAS) $(CFLAGS) -c $< $(DEFINES) -o $@
 
 clean:
 	rm -rf $(TARGET) $(OBJ) *.exe *.out
