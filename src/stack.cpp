@@ -2,7 +2,7 @@
 #include <cstdlib>
 #include <cstring>
 
-#include "../includes/stack.h"
+#include "stack.h"
 
 static elem_t* stack_recalloc(stack* stk, long long new_size, long long old_size);
 static void stack_recalloc_up(stack* stk);

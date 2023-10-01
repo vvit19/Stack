@@ -28,7 +28,7 @@ $(TARGET) : $(OBJ)
 	@$(CC) $(IFLAGS) $(CFlAGS) $(OBJ) -D $(DEFINES) -o $(TARGET)
 
 $(OBJ_FOLDER)%.o : $(SRC_FOLDER)%.cpp
-	@$(CC) $(IFLGAS) $(CFLAGS) -c $< $(DEFINES) -o $@
+	@$(CC) $(IFLAGS) $(CFLAGS) -c $< $(DEFINES) -o $@
 
 clean:
 	rm -rf $(TARGET) $(OBJ) *.exe *.out
