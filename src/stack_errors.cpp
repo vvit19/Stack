@@ -103,7 +103,7 @@ static long long int find_stack_errors(stack* stk)
 
     #endif
 
-    if (stk->size < 0)
+    if (stk->size < -2)
     {
         errors |= NEGATIVE_SIZE;
     }
@@ -179,25 +179,25 @@ static void tell_error(stack* stk, long long int error_value)
     {
     case STACK_NULLPTR:
         fprintf(log_file, "STACK_NULLPTR ERROR\n\n");
-        break;
+        exit(1);
     case NEGATIVE_SIZE:
         fprintf(log_file, "NEGATIVE_SIZE ERROR\n\n");
         stack_dump(stk);
-        break;
+        exit(1);
     case NEGATIVE_CAPACITY:
         fprintf(log_file, "NEGATIVE_CAPACITY ERROR\n\n");
         stack_dump(stk);
-        break;
+        exit(1);
     case DATARRAY_NULLPTR:
         fprintf(log_file, "DATA ARRAY NULLPTR\n\n");
-        break;
+        exit(1);
     case SIZE_BIGGER_THAN_CAPACITY:
         fprintf(log_file, "SIZE IS BIGGER THAN CAPACITY\n\n");
         stack_dump(stk);
-        break;
+        exit(1);
     case ACTIONS_AFTER_DTOR:
         fprintf(log_file, "ACTIONS WITH STACK AFTER DTOR\n\n");
-        break;
+        exit(1);
 
     #ifdef _CANARY_PROTECTION
 
@@ -237,6 +237,5 @@ static void tell_error(stack* stk, long long int error_value)
     fprintf(log_file, "--------------------------------------------------------------------------------------\n\n");
 
     fclose(log_file);
-    exit(1);
 }
 #endif
