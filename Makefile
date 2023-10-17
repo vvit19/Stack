@@ -28,6 +28,7 @@ $(TARGET) : $(OBJ)
 	@$(CC) $(IFLAGS) $(CFlAGS) $(OBJ) -D $(DEFINES) -o $(TARGET)
 
 $(OBJ_FOLDER)%.o : $(SRC_FOLDER)%.cpp
+	@mkdir -p $(@D)
 	@$(CC) $(IFLAGS) $(CFLAGS) -c $< $(DEFINES) -o $@
 
 clean:
