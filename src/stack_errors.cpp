@@ -103,7 +103,7 @@ static long long int find_stack_errors(stack* stk)
 
     #endif
 
-    if (stk->size < -2)
+    if (stk->size < 0)
     {
         errors |= NEGATIVE_SIZE;
     }
@@ -183,7 +183,6 @@ static void tell_error(stack* stk, long long int error_value)
     case NEGATIVE_SIZE:
         fprintf(log_file, "NEGATIVE_SIZE ERROR\n\n");
         stack_dump(stk);
-        exit(1);
     case NEGATIVE_CAPACITY:
         fprintf(log_file, "NEGATIVE_CAPACITY ERROR\n\n");
         stack_dump(stk);

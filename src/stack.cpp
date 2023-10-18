@@ -69,6 +69,7 @@ stack_errors stack_push(stack* stk, elem_t value)
 stack_errors stack_pop(stack* stk, elem_t* popped_value)
 {
     stack_verify(stk);
+    assert(popped_value);
 
     if (stk->size <= stk->capacity / 4 && stk->capacity >= MIN_CAPACITY)
     {
